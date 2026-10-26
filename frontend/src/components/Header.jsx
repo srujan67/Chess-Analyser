@@ -27,7 +27,7 @@ export default function Header() {
         </div>
       </div>
       <div className="header-meta">
-        <span className="badge badge-milestone">Milestone 1: Frontend Foundation</span>
+        <span className="badge badge-milestone">Milestone 2: PGN Import &amp; Replay</span>
       </div>
     </header>
   );

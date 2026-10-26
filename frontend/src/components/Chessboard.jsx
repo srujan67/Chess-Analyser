@@ -1,75 +1,61 @@
 import { useState } from 'react';
+import { Chessboard as ReactChessboard } from 'react-chessboard';
+import { DEFAULT_STARTING_FEN } from '../services/chessService';
 
-// Starting position piece map (row 0 is rank 8, row 7 is rank 1)
-const INITIAL_BOARD = [
-  ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'], // Rank 8 (Black back rank)
-  ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'], // Rank 7 (Black pawns)
-  ['', '', '', '', '', '', '', ''],         // Rank 6
-  ['', '', '', '', '', '', '', ''],         // Rank 5
-  ['', '', '', '', '', '', '', ''],         // Rank 4
-  ['', '', '', '', '', '', '', ''],         // Rank 3
-  ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'], // Rank 2 (White pawns)
-  ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖'], // Rank 1 (White back rank)
-];
-
-const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
-
-export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNavigate }) {
+export default function Chessboard({
+  currentFen = DEFAULT_STARTING_FEN,
+  currentMove = null,
+  currentMoveIndex = 0,
+  totalMoves = 0,
+  onNavigate,
+}) {
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const displayRanks = isFlipped ? [...RANKS].reverse() : RANKS;
-  const displayFiles = isFlipped ? [...FILES].reverse() : FILES;
+  // Compute square highlights for the active move
+  const customSquareStyles = {};
+  if (currentMove?.from && currentMove?.to) {
+    customSquareStyles[currentMove.from] = {
+      backgroundColor: 'rgba(255, 255, 0, 0.35)',
+    };
+    customSquareStyles[currentMove.to] = {
+      backgroundColor: 'rgba(255, 255, 0, 0.55)',
+    };
+  }
+
+  // Determine current move description for the status badge
+  let statusText = 'Starting Position';
+  if (currentMoveIndex > 0 && currentMove) {
+    const moveNum = Math.floor((currentMoveIndex - 1) / 2) + 1;
+    const isWhite = currentMove.color === 'w';
+    statusText = `${moveNum}.${isWhite ? '' : '..'} ${currentMove.san}`;
+  }
 
   return (
     <div className="chessboard-container">
       <div className="board-wrapper">
-        <div className="chessboard" role="region" aria-label="Chessboard">
-          {displayRanks.map((rank, rowIndex) => (
-            <div key={rank} className="board-row">
-              {displayFiles.map((file, colIndex) => {
-                const actualRow = isFlipped ? 7 - rowIndex : rowIndex;
-                const actualCol = isFlipped ? 7 - colIndex : colIndex;
-                const isLight = (actualRow + actualCol) % 2 === 0;
-                const piece = INITIAL_BOARD[actualRow][actualCol];
-                const isBlackPiece = ['♜', '♞', '♝', '♛', '♚', '♟'].includes(piece);
-
-                return (
-                  <div
-                    key={`${file}${rank}`}
-                    className={`board-square ${isLight ? 'square-light' : 'square-dark'}`}
-                    data-square={`${file}${rank}`}
-                  >
-                    {/* Rank coordinate on the first column of the row */}
-                    {colIndex === 0 && (
-                      <span className="coord coord-rank">{rank}</span>
-                    )}
-
-                    {/* File coordinate on the bottom row */}
-                    {rowIndex === 7 && (
-                      <span className="coord coord-file">{file}</span>
-                    )}
-
-                    {piece && (
-                      <span
-                        className={`chess-piece ${isBlackPiece ? 'piece-black' : 'piece-white'}`}
-                        aria-label={`${piece} on ${file}${rank}`}
-                      >
-                        {piece}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        <ReactChessboard
+          options={{
+            position: currentFen || DEFAULT_STARTING_FEN,
+            boardOrientation: isFlipped ? 'black' : 'white',
+            allowDragging: false,
+            showNotation: true,
+            darkSquareStyle: { backgroundColor: '#b58863' },
+            lightSquareStyle: { backgroundColor: '#f0d9b5' },
+            squareStyles: customSquareStyles,
+            boardStyle: {
+              borderRadius: '6px',
+              overflow: 'hidden',
+            },
+          }}
+        />
       </div>
 
       <div className="board-controls">
         <div className="board-status">
           <span className="status-dot"></span>
-          <span className="status-text">Starting Position (Move {currentMoveIndex}/{totalMoves})</span>
+          <span className="status-text">
+            {statusText} ({currentMoveIndex}/{totalMoves})
+          </span>
         </div>
 
         <div className="controls-buttons">
@@ -77,8 +63,8 @@ export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNav
             type="button"
             className="btn btn-secondary"
             onClick={() => onNavigate && onNavigate('start')}
-            disabled={totalMoves === 0}
-            title="Go to start"
+            disabled={totalMoves === 0 || currentMoveIndex === 0}
+            title="Go to start (Move 0)"
             aria-label="Go to start"
           >
             ⇤
@@ -87,7 +73,7 @@ export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNav
             type="button"
             className="btn btn-secondary"
             onClick={() => onNavigate && onNavigate('prev')}
-            disabled={totalMoves === 0}
+            disabled={totalMoves === 0 || currentMoveIndex === 0}
             title="Previous move"
             aria-label="Previous move"
           >
@@ -97,7 +83,7 @@ export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNav
             type="button"
             className="btn btn-secondary"
             onClick={() => onNavigate && onNavigate('next')}
-            disabled={totalMoves === 0}
+            disabled={totalMoves === 0 || currentMoveIndex === totalMoves}
             title="Next move"
             aria-label="Next move"
           >
@@ -107,7 +93,7 @@ export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNav
             type="button"
             className="btn btn-secondary"
             onClick={() => onNavigate && onNavigate('end')}
-            disabled={totalMoves === 0}
+            disabled={totalMoves === 0 || currentMoveIndex === totalMoves}
             title="Go to end"
             aria-label="Go to end"
           >
@@ -119,7 +105,7 @@ export default function Chessboard({ currentMoveIndex = 0, totalMoves = 0, onNav
             onClick={() => setIsFlipped(!isFlipped)}
             title="Flip board orientation"
           >
-            ⇄ Flip
+            ⇄ Flip ({isFlipped ? 'Black' : 'White'})
           </button>
         </div>
       </div>

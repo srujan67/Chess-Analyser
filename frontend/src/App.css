@@ -115,84 +115,9 @@
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   border: 3px solid var(--board-border);
-}
-
-.chessboard {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  user-select: none;
-}
-
-.board-row {
-  display: flex;
-  flex: 1;
-}
-
-.board-square {
-  flex: 1;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(24px, 5vw, 44px);
-  cursor: default;
-}
-
-.square-light {
-  background-color: var(--board-light);
-  color: #312e2b;
-}
-
-.square-dark {
-  background-color: var(--board-dark);
-  color: #f7fafc;
-}
-
-/* Rank and file algebraic notation labels */
-.coord {
-  position: absolute;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.coord-rank {
-  top: 3px;
-  left: 3px;
-}
-
-.coord-file {
-  bottom: 3px;
-  right: 3px;
-}
-
-.square-light .coord {
-  color: var(--board-dark);
-}
-
-.square-dark .coord {
-  color: var(--board-light);
-}
-
-.chess-piece {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
-
-.piece-white {
-  color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 1px #000;
-}
-
-.piece-black {
-  color: #1a1a1a;
-  text-shadow: 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 /* Board Controls */
@@ -319,6 +244,11 @@
   position: relative;
 }
 
+.pgn-dropzone.dragging .file-dropzone-label {
+  border-color: var(--accent-primary);
+  background-color: var(--accent-soft);
+}
+
 .file-input-hidden {
   position: absolute;
   width: 1px;
@@ -395,6 +325,45 @@
   min-height: 320px;
 }
 
+.game-players-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.game-vs {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.game-result-badge {
+  margin-left: auto;
+  font-size: 11px;
+  background-color: var(--bg-hover);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.start-pos-row {
+  margin-bottom: 6px;
+}
+
+.start-pos-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+}
+
 .move-list-table-wrapper {
   max-height: 280px;
   overflow-y: auto;
@@ -417,6 +386,7 @@
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
+  z-index: 2;
 }
 
 .move-list-table td {

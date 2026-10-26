@@ -1,62 +1,97 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Chessboard from './components/Chessboard';
 import PgnUploader from './components/PgnUploader';
 import MoveHistory from './components/MoveHistory';
 import AnalysisPanel from './components/AnalysisPanel';
+import {
+  DEFAULT_STARTING_FEN,
+  getNavigationIndex,
+} from './services/chessService';
 import './App.css';
 
-/**
- * Extracts chess moves (SAN notation) from raw PGN text.
- * Strips headers, comments, and results.
- */
-function extractMovesFromPgn(pgn) {
-  if (!pgn || typeof pgn !== 'string') return [];
-  const withoutHeaders = pgn.replace(/\[.*?\]/g, ' ');
-  const withoutComments = withoutHeaders.replace(/\{.*?\}/g, ' ');
-  const withoutVariations = withoutComments.replace(/\(.*?\)/g, ' ');
-  const tokens = withoutVariations
-    .replace(/[0-9]+\.+/g, ' ')
-    .replace(/(1-0|0-1|1\/2-1\/2|\*)/g, ' ')
-    .trim()
-    .split(/\s+/);
-  return tokens.filter((t) => t.length > 0 && !t.startsWith('$'));
-}
-
 export default function App() {
-  const [moves, setMoves] = useState([]);
+  const [gameData, setGameData] = useState({
+    moves: [],
+    positions: [DEFAULT_STARTING_FEN],
+    headers: {},
+    totalMoves: 0,
+  });
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [gameSource, setGameSource] = useState('');
 
-  const handlePgnLoaded = (pgnContent, sourceName) => {
-    if (!pgnContent) {
-      setMoves([]);
-      setCurrentMoveIndex(0);
-      setGameSource('');
-      return;
-    }
-    const parsedMoves = extractMovesFromPgn(pgnContent);
-    setMoves(parsedMoves);
-    setCurrentMoveIndex(parsedMoves.length > 0 ? 1 : 0);
+  const handleGameLoaded = (parsedResult, sourceName) => {
+    setGameData({
+      moves: parsedResult.moves || [],
+      positions: parsedResult.positions || [DEFAULT_STARTING_FEN],
+      headers: parsedResult.headers || {},
+      totalMoves: parsedResult.totalMoves || 0,
+    });
+    // Start at move 1 so the user immediately sees the first move on the board
+    setCurrentMoveIndex(parsedResult.totalMoves > 0 ? 1 : 0);
     setGameSource(sourceName);
   };
 
-  const handleNavigate = (direction) => {
-    if (moves.length === 0) return;
-    if (direction === 'start') {
-      setCurrentMoveIndex(0);
-    } else if (direction === 'prev') {
-      setCurrentMoveIndex((prev) => Math.max(0, prev - 1));
-    } else if (direction === 'next') {
-      setCurrentMoveIndex((prev) => Math.min(moves.length, prev + 1));
-    } else if (direction === 'end') {
-      setCurrentMoveIndex(moves.length);
+  const handleGameCleared = () => {
+    setGameData({
+      moves: [],
+      positions: [DEFAULT_STARTING_FEN],
+      headers: {},
+      totalMoves: 0,
+    });
+    setCurrentMoveIndex(0);
+    setGameSource('');
+  };
+
+  const handleNavigate = useCallback(
+    (action) => {
+      setCurrentMoveIndex((prev) =>
+        getNavigationIndex(action, prev, gameData.totalMoves)
+      );
+    },
+    [gameData.totalMoves]
+  );
+
+  const handleSelectMove = (index) => {
+    if (index >= 0 && index <= gameData.totalMoves) {
+      setCurrentMoveIndex(index);
     }
   };
 
-  const handleSelectMove = (index) => {
-    setCurrentMoveIndex(index);
-  };
+  // Keyboard navigation for desktop: Left (prev), Right (next), Home (start), End (last)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Avoid intercepting keystrokes when typing in textarea or input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleNavigate('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNavigate('next');
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        handleNavigate('start');
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        handleNavigate('end');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleNavigate]);
+
+  const currentFen =
+    gameData.positions[currentMoveIndex] || DEFAULT_STARTING_FEN;
+  const currentMove =
+    currentMoveIndex > 0 ? gameData.moves[currentMoveIndex - 1] : null;
 
   return (
     <div className="app-container">
@@ -66,20 +101,26 @@ export default function App() {
         {/* Left column: Primary Chessboard view */}
         <section className="board-column" aria-label="Game Board Section">
           <Chessboard
+            currentFen={currentFen}
+            currentMove={currentMove}
             currentMoveIndex={currentMoveIndex}
-            totalMoves={moves.length}
+            totalMoves={gameData.totalMoves}
             onNavigate={handleNavigate}
           />
         </section>
 
         {/* Right column: Controls, Move History, and Analysis */}
         <section className="sidebar-column" aria-label="Game Controls and Analysis">
-          <PgnUploader onPgnLoaded={handlePgnLoaded} />
-          
+          <PgnUploader
+            onGameLoaded={handleGameLoaded}
+            onGameCleared={handleGameCleared}
+          />
+
           <div className="sidebar-panels-grid">
             <MoveHistory
-              moves={moves}
+              moves={gameData.moves}
               currentMoveIndex={currentMoveIndex}
+              headers={gameData.headers}
               onSelectMove={handleSelectMove}
             />
             <AnalysisPanel />
@@ -89,8 +130,8 @@ export default function App() {
 
       <footer className="footer">
         <p>
-          Chess Analyser &bull; Milestone 1: Frontend Foundation &bull;{' '}
-          {gameSource ? `Active Game: ${gameSource}` : 'No game loaded'}
+          Chess Analyser &bull; Milestone 2: Functional PGN Import &amp; Replay &bull;{' '}
+          {gameSource ? `Loaded: ${gameSource}` : 'No game loaded'}
         </p>
       </footer>
     </div>
