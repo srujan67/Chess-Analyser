@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Chessboard from './components/Chessboard';
-import PgnUploader from './components/PgnUploader';
+import SuggestionsPanel from './components/SuggestionsPanel';
 import MoveHistory from './components/MoveHistory';
-import AnalysisPanel from './components/AnalysisPanel';
+import ImportModal from './components/ImportModal';
 import {
   DEFAULT_STARTING_FEN,
   getNavigationIndex,
@@ -19,6 +19,7 @@ export default function App() {
   });
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [gameSource, setGameSource] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const handleGameLoaded = (parsedResult, sourceName) => {
     setGameData({
@@ -30,17 +31,6 @@ export default function App() {
     // Start at move 1 so the user immediately sees the first move on the board
     setCurrentMoveIndex(parsedResult.totalMoves > 0 ? 1 : 0);
     setGameSource(sourceName);
-  };
-
-  const handleGameCleared = () => {
-    setGameData({
-      moves: [],
-      positions: [DEFAULT_STARTING_FEN],
-      headers: {},
-      totalMoves: 0,
-    });
-    setCurrentMoveIndex(0);
-    setGameSource('');
   };
 
   const handleNavigate = useCallback(
@@ -58,11 +48,12 @@ export default function App() {
     }
   };
 
-  // Keyboard navigation for desktop: Left (prev), Right (next), Home (start), End (last)
+  // Keyboard shortcuts for desktop: Left (prev), Right (next), Home (start), End (last)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Avoid intercepting keystrokes when typing in textarea or input
+      // Avoid intercepting keystrokes when typing in textarea or input, or if modal is open
       if (
+        isImportModalOpen ||
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
@@ -86,7 +77,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNavigate]);
+  }, [handleNavigate, isImportModalOpen]);
 
   const currentFen =
     gameData.positions[currentMoveIndex] || DEFAULT_STARTING_FEN;
@@ -95,11 +86,11 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Header />
+      <Header onOpenImport={() => setIsImportModalOpen(true)} />
 
-      <main className="dashboard-layout">
-        {/* Left column: Primary Chessboard view */}
-        <section className="board-column" aria-label="Game Board Section">
+      <main className="dashboard-layout-3col">
+        {/* Left column: Chessboard and controls (largest area) */}
+        <section className="dashboard-col board-column" aria-label="Chessboard Section">
           <Chessboard
             currentFen={currentFen}
             currentMove={currentMove}
@@ -109,31 +100,35 @@ export default function App() {
           />
         </section>
 
-        {/* Right column: Controls, Move History, and Analysis */}
-        <section className="sidebar-column" aria-label="Game Controls and Analysis">
-          <PgnUploader
-            onGameLoaded={handleGameLoaded}
-            onGameCleared={handleGameCleared}
-          />
+        {/* Middle column: Suggestions (placeholder) */}
+        <section className="dashboard-col suggestions-column" aria-label="Suggestions Section">
+          <SuggestionsPanel />
+        </section>
 
-          <div className="sidebar-panels-grid">
-            <MoveHistory
-              moves={gameData.moves}
-              currentMoveIndex={currentMoveIndex}
-              headers={gameData.headers}
-              onSelectMove={handleSelectMove}
-            />
-            <AnalysisPanel />
-          </div>
+        {/* Right column: Move History */}
+        <section className="dashboard-col moves-column" aria-label="Move History Section">
+          <MoveHistory
+            moves={gameData.moves}
+            currentMoveIndex={currentMoveIndex}
+            headers={gameData.headers}
+            onSelectMove={handleSelectMove}
+          />
         </section>
       </main>
 
       <footer className="footer">
         <p>
-          Chess Analyser &bull; Milestone 2: Functional PGN Import &amp; Replay &bull;{' '}
-          {gameSource ? `Loaded: ${gameSource}` : 'No game loaded'}
+          Chess Analyser &bull; Review your games and improve your play &bull;{' '}
+          {gameSource ? `Loaded: ${gameSource}` : 'No game loaded (Click "Import PGN" to start)'}
         </p>
       </footer>
+
+      {/* PGN Import Modal Dialog */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onGameLoaded={handleGameLoaded}
+      />
     </div>
   );
 }
