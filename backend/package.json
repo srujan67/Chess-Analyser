@@ -1,0 +1,24 @@
+{
+  "name": "chess-analyser-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Chess Analyser",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "chess",
+    "analyser",
+    "express",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6"
+  }
+}
