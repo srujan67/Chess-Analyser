@@ -4,6 +4,7 @@ import {
   getNavigationIndex,
   DEFAULT_STARTING_FEN,
   SAMPLE_PGN,
+  CHESS_COM_SAMPLE_PGN,
 } from './chessService';
 
 describe('chessService - parsePgn', () => {
@@ -37,6 +38,65 @@ describe('chessService - parsePgn', () => {
     expect(result.headers?.Result).toBe('1-0');
   });
 
+  it('should parse the exact Chess.com exported game', () => {
+    const result = parsePgn(CHESS_COM_SAMPLE_PGN);
+
+    expect(result.success).toBe(true);
+    expect(result.totalMoves).toBe(49);
+    expect(result.moves).toHaveLength(49);
+    expect(result.positions).toHaveLength(50);
+
+    // Verify headers
+    expect(result.headers?.White).toBe('SrujanMS');
+    expect(result.headers?.Black).toBe('FAHMI161');
+    expect(result.headers?.Result).toBe('1-0');
+    expect(result.headers?.WhiteElo).toBe('702');
+    expect(result.headers?.BlackElo).toBe('689');
+
+    // Verify first and last move
+    expect(result.moves[0].san).toBe('e4');
+    expect(result.moves[48].san).toBe('Ne4+');
+  });
+
+  it('should parse Chess.com game containing WhatsApp non-breaking spaces (\u00A0)', () => {
+    // WhatsApp commonly converts spaces after move numbers into non-breaking spaces
+    const pgnWithNbsp = CHESS_COM_SAMPLE_PGN.replace(/1\. e4/g, '1.\u00A0e4')
+      .replace(/2\. Nf3/g, '2.\u00A0Nf3');
+
+    const result = parsePgn(pgnWithNbsp);
+    expect(result.success).toBe(true);
+    expect(result.totalMoves).toBe(49);
+    expect(result.moves[0].san).toBe('e4');
+  });
+
+  it('should parse Chess.com game containing zero-width spaces (\u200B) and directional marks (\u200E)', () => {
+    const pgnWithZws = CHESS_COM_SAMPLE_PGN.replace('1. e4', '1. \u200Be4')
+      .replace('2. Nf3', '\u200E2. Nf3\u200B');
+
+    const result = parsePgn(pgnWithZws);
+    expect(result.success).toBe(true);
+    expect(result.totalMoves).toBe(49);
+  });
+
+  it('should parse games with smart quotes and en-dashes', () => {
+    const smartPgn = `[Site “Chess.com”]
+[Result “1–0”]
+
+1. e4 e5 1–0`;
+
+    const result = parsePgn(smartPgn);
+    expect(result.success).toBe(true);
+    expect(result.totalMoves).toBe(2);
+    expect(result.headers?.Result).toBe('1-0');
+  });
+
+  it('should parse games with Windows CRLF and missing blank lines between tags and moves', () => {
+    const crlfPgn = '[Event "Test"]\r\n[Site "Chess.com"]\r\n[Result "1-0"]\r\n1. e4 e5 1-0';
+    const result = parsePgn(crlfPgn);
+    expect(result.success).toBe(true);
+    expect(result.totalMoves).toBe(2);
+  });
+
   it('should parse a simple Scholar\'s Mate PGN', () => {
     const pgn = '1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7# 1-0';
     const result = parsePgn(pgn);
@@ -54,12 +114,22 @@ describe('chessService - parsePgn', () => {
     expect(parsePgn('').error).toContain('empty');
   });
 
-  it('should reject invalid or illegal moves in PGN', () => {
+  it('should reject invalid or illegal moves in PGN with clear offending move info', () => {
     const invalidPgn = '1. e5 e4'; // e5 is illegal for white on move 1
     const result = parsePgn(invalidPgn);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Invalid PGN/i);
+    expect(result.error).toContain('e5');
+  });
+
+  it('should report the offending illegal move in a long game', () => {
+    // Introduce an illegal move into the Chess.com game at move 25
+    const corruptedPgn = CHESS_COM_SAMPLE_PGN.replace('25. Ne4+', '25. Ne5+');
+    const result = parsePgn(corruptedPgn);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Ne5+');
   });
 
   it('should reject garbage text that contains no legal chess game', () => {

@@ -1,5 +1,6 @@
 import express from 'express';
 import healthRouter from './routes/health.routes.js';
+import gameRouter from './routes/game.routes.js';
 
 const app = express();
 
@@ -8,6 +9,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/health', healthRouter);
+app.use('/api/games', gameRouter);
 
 // 404 Handler for unknown routes
 app.use((req, res) => {

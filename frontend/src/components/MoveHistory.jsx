@@ -7,14 +7,47 @@ export default function MoveHistory({
   onSelectMove,
 }) {
   const activeBtnRef = useRef(null);
+  const tableWrapperRef = useRef(null);
 
-  // Auto-scroll the move list to keep active move visible
+  // Auto-scroll ONLY the internal move list container to keep the active move visible.
+  // This explicitly avoids calling window.scroll or element.scrollIntoView(),
+  // ensuring the outer document/window remains completely stationary during move navigation.
   useEffect(() => {
-    if (activeBtnRef.current) {
-      activeBtnRef.current.scrollIntoView({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
+    const container = tableWrapperRef.current;
+    const activeBtn = activeBtnRef.current;
+
+    if (!container || !activeBtn) return;
+
+    // When navigating to the starting position (move 0), scroll smoothly to the top
+    if (currentMoveIndex === 0) {
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        container.scrollTop = 0;
+      }
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = activeBtn.getBoundingClientRect();
+
+    const isAbove = activeRect.top < containerRect.top;
+    const isBelow = activeRect.bottom > containerRect.bottom;
+
+    if (isAbove) {
+      const diff = activeRect.top - containerRect.top - 8;
+      if (typeof container.scrollBy === 'function') {
+        container.scrollBy({ top: diff, behavior: 'smooth' });
+      } else {
+        container.scrollTop += diff;
+      }
+    } else if (isBelow) {
+      const diff = activeRect.bottom - containerRect.bottom + 8;
+      if (typeof container.scrollBy === 'function') {
+        container.scrollBy({ top: diff, behavior: 'smooth' });
+      } else {
+        container.scrollTop += diff;
+      }
     }
   }, [currentMoveIndex]);
 
@@ -81,7 +114,7 @@ export default function MoveHistory({
             </p>
           </div>
         ) : (
-          <div className="move-list-table-wrapper">
+          <div className="move-list-table-wrapper" ref={tableWrapperRef}>
             <div className="start-pos-row">
               <button
                 type="button"

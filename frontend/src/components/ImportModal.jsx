@@ -1,30 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { parsePgn, SAMPLE_PGN } from '../services/chessService';
+import { saveGame } from '../services/gameApi';
 
-export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
+export default function ImportModal({
+  isOpen,
+  onClose,
+  onGameLoaded,
+  onGameSaved,
+  onGameSaveFailed,
+}) {
   const [pgnText, setPgnText] = useState('');
   const [activeTab, setActiveTab] = useState('paste'); // 'paste' | 'file'
   const [loadedFileName, setLoadedFileName] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSubmitting = useRef(false);
 
   // Close modal when pressing Escape key
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !isSaving) {
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isSaving, onClose]);
 
   if (!isOpen) return null;
 
-  const processPgnContent = (content, sourceName) => {
+  const processPgnContent = async (content, sourceName) => {
+    if (isSubmitting.current) return;
+
     const result = parsePgn(content);
     if (!result.success) {
       setFeedback({ type: 'error', message: result.error });
@@ -32,23 +43,42 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
       return;
     }
 
-    setFeedback({
-      type: 'success',
-      message: `Successfully loaded ${result.totalMoves} moves (${sourceName}).`,
-    });
-
     if (onGameLoaded) {
       onGameLoaded(result, sourceName);
     }
 
-    // Close the dialog after successful import
-    onClose();
+    isSubmitting.current = true;
+    setIsSaving(true);
+    setFeedback({
+      type: 'pending',
+      message: `Loaded locally. Saving ${result.totalMoves} moves to the database...`,
+    });
+
+    try {
+      const savedGame = await saveGame(content);
+      onGameSaved?.(savedGame.gameId);
+      setFeedback({
+        type: 'success',
+        message: `Saved game ${savedGame.gameId} with ${result.totalMoves} moves (${sourceName}).`,
+      });
+      onClose();
+    } catch (error) {
+      onGameSaveFailed?.();
+      setFeedback({
+        type: 'error',
+        message: `The game is loaded locally but was not saved: ${error.message}`,
+      });
+    } finally {
+      isSubmitting.current = false;
+      setIsSaving(false);
+    }
   };
 
   const handleFileUpload = (file) => {
-    if (!file) return;
+    if (!file || isSubmitting.current) return;
 
-    if (!file.name.endsWith('.pgn') && !file.name.endsWith('.txt')) {
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.pgn') && !fileName.endsWith('.txt')) {
       setFeedback({
         type: 'error',
         message: 'Unsupported file type. Please upload a valid .pgn or .txt file.',
@@ -77,7 +107,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    if (!isSaving) setIsDragging(true);
   };
 
   const handleDragLeave = (e) => {
@@ -90,6 +120,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    if (isSaving) return;
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileUpload(file);
@@ -97,6 +128,8 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
   };
 
   const handleLoadText = () => {
+    if (isSaving) return;
+
     if (!pgnText.trim()) {
       setFeedback({
         type: 'error',
@@ -109,6 +142,8 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
   };
 
   const handleLoadSample = () => {
+    if (isSaving) return;
+
     setPgnText(SAMPLE_PGN);
     setLoadedFileName('Opera Game (Paul Morphy, 1858)');
     processPgnContent(SAMPLE_PGN, 'Opera Game (Paul Morphy, 1858)');
@@ -117,7 +152,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
   return (
     <div
       className="modal-backdrop"
-      onClick={onClose}
+      onClick={isSaving ? undefined : onClose}
       role="presentation"
     >
       <div
@@ -153,6 +188,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
             type="button"
             className="modal-close-btn"
             onClick={onClose}
+            disabled={isSaving}
             aria-label="Close dialog"
             title="Close dialog (Esc)"
           >
@@ -168,6 +204,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
               aria-selected={activeTab === 'paste'}
               className={`tab-btn ${activeTab === 'paste' ? 'active' : ''}`}
               onClick={() => setActiveTab('paste')}
+              disabled={isSaving}
             >
               Paste PGN Text
             </button>
@@ -177,6 +214,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
               aria-selected={activeTab === 'file'}
               className={`tab-btn ${activeTab === 'file' ? 'active' : ''}`}
               onClick={() => setActiveTab('file')}
+              disabled={isSaving}
             >
               Upload PGN File
             </button>
@@ -189,6 +227,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
                 placeholder="Paste game PGN here (e.g. 1. e4 e5 2. Nf3 Nc6...)"
                 value={pgnText}
                 onChange={(e) => setPgnText(e.target.value)}
+                disabled={isSaving}
                 rows={7}
                 aria-label="PGN text input"
                 autoFocus
@@ -207,6 +246,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
                 className="file-input-hidden"
                 accept=".pgn,.txt"
                 onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                disabled={isSaving}
               />
               <label htmlFor="modal-pgn-file-input" className="file-dropzone-label">
                 <span className="upload-icon" aria-hidden="true">📁</span>
@@ -219,7 +259,11 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
           )}
 
           {feedback && (
-            <div className={`feedback-banner feedback-${feedback.type}`} role="status">
+            <div
+              className={`feedback-banner feedback-${feedback.type}`}
+              role={feedback.type === 'error' ? 'alert' : 'status'}
+              aria-live="polite"
+            >
               {feedback.message}
             </div>
           )}
@@ -230,6 +274,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
             type="button"
             className="btn btn-secondary"
             onClick={handleLoadSample}
+            disabled={isSaving}
             title="Load the classic 1858 Opera Game by Paul Morphy"
           >
             Load Sample PGN
@@ -239,6 +284,7 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
               type="button"
               className="btn btn-outline"
               onClick={onClose}
+              disabled={isSaving}
             >
               Cancel
             </button>
@@ -246,9 +292,9 @@ export default function ImportModal({ isOpen, onClose, onGameLoaded }) {
               type="button"
               className="btn btn-primary"
               onClick={handleLoadText}
-              disabled={!pgnText.trim()}
+              disabled={!pgnText.trim() || isSaving}
             >
-              Load Game
+              {isSaving ? 'Saving...' : 'Load Game'}
             </button>
           </div>
         </div>

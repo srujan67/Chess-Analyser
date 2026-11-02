@@ -16,6 +16,8 @@ export default function App() {
     positions: [DEFAULT_STARTING_FEN],
     headers: {},
     totalMoves: 0,
+    gameId: null,
+    saveStatus: 'none',
   });
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [gameSource, setGameSource] = useState('');
@@ -27,10 +29,27 @@ export default function App() {
       positions: parsedResult.positions || [DEFAULT_STARTING_FEN],
       headers: parsedResult.headers || {},
       totalMoves: parsedResult.totalMoves || 0,
+      gameId: null,
+      saveStatus: 'saving',
     });
     // Start at move 1 so the user immediately sees the first move on the board
     setCurrentMoveIndex(parsedResult.totalMoves > 0 ? 1 : 0);
     setGameSource(sourceName);
+  };
+
+  const handleGameSaved = (gameId) => {
+    setGameData((currentGame) => ({
+      ...currentGame,
+      gameId,
+      saveStatus: 'saved',
+    }));
+  };
+
+  const handleGameSaveFailed = () => {
+    setGameData((currentGame) => ({
+      ...currentGame,
+      saveStatus: 'local',
+    }));
   };
 
   const handleNavigate = useCallback(
@@ -119,7 +138,16 @@ export default function App() {
       <footer className="footer">
         <p>
           Chess Analyser &bull; Review your games and improve your play &bull;{' '}
-          {gameSource ? `Loaded: ${gameSource}` : 'No game loaded (Click "Import PGN" to start)'}
+          {gameSource ? (
+            <>
+              Loaded: {gameSource}
+              {gameData.saveStatus === 'saving' && ' · Saving to database...'}
+              {gameData.saveStatus === 'saved' && ` · Saved (ID: ${gameData.gameId})`}
+              {gameData.saveStatus === 'local' && ' · Loaded locally (not saved)'}
+            </>
+          ) : (
+            'No game loaded (Click "Import PGN" to start)'
+          )}
         </p>
       </footer>
 
@@ -128,6 +156,8 @@ export default function App() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onGameLoaded={handleGameLoaded}
+        onGameSaved={handleGameSaved}
+        onGameSaveFailed={handleGameSaveFailed}
       />
     </div>
   );
