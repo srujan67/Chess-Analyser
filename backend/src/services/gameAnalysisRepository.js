@@ -116,3 +116,54 @@ export async function getLatestGameAnalysis(gameId, database = pool) {
 
   return { ...analysis, moves };
 }
+
+function parseJsonColumn(value, fallback) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getMoveAnalysisContext(
+  { gameId, analysisId, moveId },
+  database = pool,
+) {
+  const [rows] = await database.query(
+    `SELECT
+       ga.id AS analysisId,
+       ga.game_id AS gameId,
+       ga.engine_version AS engineVersion,
+       ga.search_depth AS searchDepth,
+       ma.move_id AS moveId,
+       m.ply_number AS plyNumber,
+       m.san AS playedSan,
+       ma.best_move AS bestMove,
+       ma.best_move_san AS bestMoveSan,
+       ma.evaluation_before AS evaluationBefore,
+       ma.evaluation_before_type AS evaluationBeforeType,
+       ma.evaluation_after AS evaluationAfter,
+       ma.evaluation_after_type AS evaluationAfterType,
+       ma.centipawn_loss AS centipawnLoss,
+       ma.classification,
+       ma.principal_variation AS principalVariation,
+       ma.engine_metadata AS engineMetadata
+     FROM game_analyses AS ga
+     INNER JOIN move_analyses AS ma ON ma.analysis_id = ga.id
+     INNER JOIN moves AS m
+       ON m.id = ma.move_id AND m.game_id = ga.game_id
+     WHERE ga.game_id = ? AND ga.id = ? AND ma.move_id = ?
+     LIMIT 1`,
+    [gameId, analysisId, moveId],
+  );
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  return {
+    ...row,
+    principalVariation: parseJsonColumn(row.principalVariation, []),
+    engineMetadata: parseJsonColumn(row.engineMetadata, {}),
+  };
+}

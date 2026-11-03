@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export default function Header({ onOpenImport }) {
+export default function Header({ onOpenImport, onOpenSavedGames }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const headerRef = useRef(null);
 
@@ -49,6 +49,11 @@ export default function Header({ onOpenImport }) {
     }
   };
 
+  const handleSavedGamesClick = () => {
+    setIsMenuOpen(false);
+    onOpenSavedGames?.();
+  };
+
   return (
     <header className="header" ref={headerRef}>
       <div className="header-main-row">
@@ -80,6 +85,14 @@ export default function Header({ onOpenImport }) {
 
         {/* Desktop prominent Import PGN action */}
         <div className="header-actions">
+          <button
+            type="button"
+            className="btn btn-outline btn-saved-games"
+            onClick={onOpenSavedGames}
+            title="Browse saved games"
+          >
+            Saved Games
+          </button>
           <button
             type="button"
             className="btn btn-primary btn-import"
@@ -172,6 +185,14 @@ export default function Header({ onOpenImport }) {
             </button>
           </div>
           <div className="mobile-nav-items">
+            <button
+              type="button"
+              className="btn btn-outline mobile-menu-item-btn"
+              onClick={handleSavedGamesClick}
+              title="Browse saved games"
+            >
+              Saved Games
+            </button>
             <button
               type="button"
               className="btn btn-primary mobile-menu-item-btn"

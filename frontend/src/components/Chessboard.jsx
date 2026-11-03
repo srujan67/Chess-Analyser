@@ -7,6 +7,7 @@ export default function Chessboard({
   currentMove = null,
   currentMoveIndex = 0,
   totalMoves = 0,
+  headers = {},
   onNavigate,
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -30,8 +31,26 @@ export default function Chessboard({
     statusText = `${moveNum}.${isWhite ? '' : '..'} ${currentMove.san}`;
   }
 
+  const whitePlayer = headers.White || 'White';
+  const blackPlayer = headers.Black || 'Black';
+  const topPlayer = isFlipped
+    ? { color: 'white', label: 'White', name: whitePlayer, position: 'top' }
+    : { color: 'black', label: 'Black', name: blackPlayer, position: 'top' };
+  const bottomPlayer = isFlipped
+    ? { color: 'black', label: 'Black', name: blackPlayer, position: 'bottom' }
+    : { color: 'white', label: 'White', name: whitePlayer, position: 'bottom' };
+
+  const renderPlayerLabel = (player) => (
+    <div className={`board-player board-player-${player.color} board-player-${player.position}`}>
+      <span className="board-player-indicator" aria-hidden="true" />
+      <span className="board-player-label">{player.label}</span>
+      <span className="board-player-name" title={player.name}>{player.name}</span>
+    </div>
+  );
+
   return (
     <div className="chessboard-container">
+      {renderPlayerLabel(topPlayer)}
       <div className="board-wrapper">
         <ReactChessboard
           options={{
@@ -49,6 +68,7 @@ export default function Chessboard({
           }}
         />
       </div>
+      {renderPlayerLabel(bottomPlayer)}
 
       <div className="board-controls">
         <div className="board-status">

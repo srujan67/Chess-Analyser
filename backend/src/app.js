@@ -1,5 +1,6 @@
 import express from 'express';
 import { createAnalysisRouter } from './routes/analysis.routes.js';
+import chessCoachRouter from './routes/chessCoach.routes.js';
 import gameAnalysisRouter from './routes/gameAnalysis.routes.js';
 import healthRouter from './routes/health.routes.js';
 import gameRouter from './routes/game.routes.js';
@@ -11,6 +12,10 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/health', healthRouter);
+app.use(
+  '/api/games/:gameId/analysis/:analysisId/moves/:moveId/explanation',
+  chessCoachRouter,
+);
 app.use('/api/games/:gameId/analysis', gameAnalysisRouter);
 app.use('/api/games', gameRouter);
 app.use('/api/analysis', createAnalysisRouter());

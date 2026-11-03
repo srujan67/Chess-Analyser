@@ -136,6 +136,69 @@
   justify-content: center;
 }
 
+.board-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.board-player-top {
+  margin-bottom: 8px;
+}
+
+.board-player-bottom {
+  margin-top: 8px;
+}
+
+.board-player-black {
+  color: #e4e8f0;
+  background-color: #232838;
+  border-color: #3b4358;
+}
+
+.board-player-white {
+  color: #202636;
+  background-color: #e8edf5;
+  border-color: #c3ccda;
+}
+
+.board-player-indicator {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.board-player-black .board-player-indicator {
+  background-color: #11141b;
+  border-color: #aab3c4;
+}
+
+.board-player-white .board-player-indicator {
+  background-color: #ffffff;
+  border-color: #7b8495;
+}
+
+.board-player-label {
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.board-player-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* Board Controls */
 .board-controls {
   display: flex;
@@ -237,7 +300,423 @@
 
 /* Suggestions Panel */
 .suggestions-panel {
-  /* Fills grid row height via stretch */
+  min-height: 0;
+  max-height: calc(100vh - 180px);
+}
+
+.coach-header-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.suggestions-body {
+  overflow: hidden;
+}
+
+.coach-results {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.coach-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.coach-opening-line {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.coach-compare-line {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.coach-compare-line span {
+  color: var(--text-muted);
+}
+
+.coach-player-summaries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.coach-player-summary {
+  min-width: 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.coach-player-heading,
+.coach-event-side {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.coach-player-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-player-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.coach-player-white .coach-player-dot,
+.coach-side-w .coach-player-dot {
+  background: #f8fafc;
+  border-color: #9ba6b7;
+}
+
+.coach-player-black .coach-player-dot,
+.coach-side-b .coach-player-dot {
+  background: #202636;
+  border-color: #818ba0;
+}
+
+.coach-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.coach-counts b {
+  color: var(--text-primary);
+  font-size: 10px;
+}
+
+.coach-lessons {
+  padding: 8px 10px;
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.coach-lessons h3,
+.coach-events-heading h3 {
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.coach-lessons ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 5px 0 0;
+  padding-left: 16px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.coach-events-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.coach-events-heading p {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.coach-events-heading .coach-board-selection {
+  color: var(--accent-primary);
+}
+
+.coach-event-navigation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.coach-event-navigation .btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.coach-event-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 70px;
+  overflow-y: auto;
+  padding: 1px 3px 4px 1px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.coach-event-card {
+  display: flex;
+  width: 100%;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 10px;
+  color: var(--text-secondary);
+  text-align: left;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  animation: coachCardEnter 0.2s ease-out both;
+}
+
+.coach-event-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+}
+
+.coach-event-card:focus-visible,
+.coach-action:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.coach-event-card.active {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.coach-event-blunder {
+  border-left-color: #ef6464;
+}
+
+.coach-event-mistake {
+  border-left-color: #f39a4a;
+}
+
+.coach-event-inaccuracy {
+  border-left-color: #e4c45c;
+}
+
+.coach-event-good {
+  border-left-color: #52b788;
+}
+
+.coach-event-topline,
+.coach-event-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.coach-event-topline {
+  justify-content: space-between;
+}
+
+.coach-event-move-number {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.coach-classification {
+  padding: 2px 6px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.coach-event-blunder .coach-classification {
+  color: #ffb1b1;
+}
+
+.coach-event-mistake .coach-classification {
+  color: #ffc184;
+}
+
+.coach-event-inaccuracy .coach-classification {
+  color: #f1df91;
+}
+
+.coach-event-good .coach-classification {
+  color: #93dfb6;
+}
+
+.coach-event-title {
+  justify-content: space-between;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.coach-move-san {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-current-tag {
+  flex: 0 0 auto;
+  color: var(--accent-primary);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.coach-evaluation,
+.coach-why,
+.coach-better-idea,
+.coach-tip,
+.coach-roast,
+.coach-recommendation {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.coach-evaluation {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.coach-recommendation {
+  padding: 5px 7px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.coach-recommendation strong {
+  color: var(--text-primary);
+}
+
+.coach-why,
+.coach-better-idea {
+  color: var(--text-secondary);
+}
+
+.coach-tip {
+  color: var(--text-primary);
+}
+
+.coach-roast {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.coach-all-good,
+.coach-state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: auto;
+  padding: 18px 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.coach-all-good {
+  flex-direction: row;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px;
+  text-align: left;
+  background: rgba(82, 183, 136, 0.08);
+  border: 1px solid rgba(82, 183, 136, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.coach-all-good > span {
+  font-size: 17px;
+}
+
+.coach-all-good strong,
+.coach-state-message h3 {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.coach-all-good p {
+  margin-top: 3px;
+}
+
+.coach-state-icon {
+  color: var(--accent-primary);
+  font-size: 30px;
+}
+
+.coach-action {
+  margin-top: 4px;
+  min-height: 38px;
+}
+
+.coach-state-error {
+  color: var(--status-danger);
+}
+
+.coach-loading-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: coachPulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes coachCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes coachPulse {
+  to {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
 }
 
 .suggestions-empty-state {
@@ -445,6 +924,95 @@
   flex-direction: column;
   overflow: hidden;
   animation: modalSlideUp 0.18s ease-out;
+}
+
+.saved-games-dialog {
+  max-width: 760px;
+  max-height: min(85vh, 760px);
+}
+
+.saved-games-body {
+  min-height: 160px;
+  overflow: hidden;
+}
+
+.saved-games-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.saved-games-loaded {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.saved-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px;
+  list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 55vh;
+}
+
+.saved-game-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.saved-game-item:hover:not(:disabled),
+.saved-game-item:focus-visible {
+  background-color: var(--bg-hover);
+  border-color: var(--accent-primary);
+  outline: none;
+}
+
+.saved-game-item:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.saved-game-players {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.saved-game-details {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.saved-game-loading {
+  color: var(--status-warning);
+  font-size: 12px;
+}
+
+.saved-games-empty {
+  flex: 1;
+}
+
+.saved-games-footer-note {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 @keyframes modalSlideUp {
@@ -747,6 +1315,11 @@
     height: auto;
   }
 
+  .suggestions-panel {
+    height: 520px;
+    max-height: 70vh;
+  }
+
   .move-list-table-wrapper {
     max-height: 320px;
   }
@@ -886,6 +1459,38 @@
     gap: 8px;
   }
 
+  .saved-games-backdrop {
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .saved-games-dialog {
+    width: 100%;
+    max-height: 88vh;
+    border-radius: var(--radius-md);
+  }
+
+  .saved-games-body {
+    min-height: 120px;
+    padding: 14px;
+  }
+
+  .saved-games-list {
+    max-height: 58vh;
+  }
+
+  .saved-game-item {
+    padding: 11px;
+  }
+
+  .saved-game-details {
+    gap: 5px 10px;
+  }
+
+  .saved-games-footer-note {
+    text-align: center;
+  }
+
   .mobile-menu-item-btn {
     width: 100%;
     justify-content: center;
@@ -995,6 +1600,17 @@
   }
 
   /* Suggestions Panel */
+  .suggestions-panel {
+    width: 100%;
+    height: 520px;
+    max-height: 75vh;
+    min-height: 380px;
+  }
+
+  .suggestions-body {
+    min-height: 0;
+  }
+
   .suggestions-empty-state {
     padding: 24px 12px;
   }

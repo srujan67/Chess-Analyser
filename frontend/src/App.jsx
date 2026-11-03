@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/Header';
 import Chessboard from './components/Chessboard';
 import SuggestionsPanel from './components/SuggestionsPanel';
 import MoveHistory from './components/MoveHistory';
 import ImportModal from './components/ImportModal';
+import SavedGamesModal from './components/SavedGamesModal';
 import {
   DEFAULT_STARTING_FEN,
   getNavigationIndex,
 } from './services/chessService';
+import { analyzeGame, getGameAnalysis } from './services/gameApi';
 import './App.css';
 
 export default function App() {
@@ -22,8 +24,16 @@ export default function App() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [gameSource, setGameSource] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isSavedGamesOpen, setIsSavedGamesOpen] = useState(false);
+  const [gameAnalysis, setGameAnalysis] = useState(null);
+  const [analysisStatus, setAnalysisStatus] = useState('empty');
+  const [analysisError, setAnalysisError] = useState('');
+  const analysisRequestInProgress = useRef(false);
+  const activeGameId = useRef(null);
+  const [analysisReloadKey, setAnalysisReloadKey] = useState(0);
 
   const handleGameLoaded = (parsedResult, sourceName) => {
+    activeGameId.current = null;
     setGameData({
       moves: parsedResult.moves || [],
       positions: parsedResult.positions || [DEFAULT_STARTING_FEN],
@@ -35,21 +45,50 @@ export default function App() {
     // Start at move 1 so the user immediately sees the first move on the board
     setCurrentMoveIndex(parsedResult.totalMoves > 0 ? 1 : 0);
     setGameSource(sourceName);
+    setGameAnalysis(null);
+    setAnalysisStatus('saving');
+    setAnalysisError('');
   };
 
   const handleGameSaved = (gameId) => {
+    activeGameId.current = gameId;
     setGameData((currentGame) => ({
       ...currentGame,
       gameId,
       saveStatus: 'saved',
     }));
+    setAnalysisStatus('loading');
+    setAnalysisReloadKey((key) => key + 1);
   };
 
   const handleGameSaveFailed = () => {
+    setAnalysisStatus('local');
     setGameData((currentGame) => ({
       ...currentGame,
       saveStatus: 'local',
     }));
+  };
+
+  const handleSavedGameLoaded = (parsedResult, savedGame) => {
+    activeGameId.current = savedGame.id;
+    setGameData({
+      moves: parsedResult.moves,
+      positions: parsedResult.positions,
+      headers: parsedResult.headers || {},
+      totalMoves: parsedResult.totalMoves,
+      gameId: savedGame.id,
+      saveStatus: 'saved',
+    });
+    setCurrentMoveIndex(parsedResult.totalMoves > 0 ? 1 : 0);
+    setGameSource(`Saved game #${savedGame.id}`);
+    setGameAnalysis(null);
+    setAnalysisStatus('loading');
+    setAnalysisError('');
+    setAnalysisReloadKey((key) => key + 1);
+  };
+
+  const handleOpenSavedGames = () => {
+    setIsSavedGamesOpen(true);
   };
 
   const handleNavigate = useCallback(
@@ -67,12 +106,81 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!gameData.gameId) return undefined;
+    getGameAnalysis(gameData.gameId)
+      .then((analysis) => {
+        if (cancelled) return;
+        setGameAnalysis(analysis);
+        setAnalysisStatus(analysis ? 'ready' : 'not-analyzed');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setAnalysisError(error.message);
+        setAnalysisStatus('error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameData.gameId, analysisReloadKey]);
+
+  const handleAnalyzeGame = async () => {
+    if (
+      !gameData.gameId ||
+      gameAnalysis ||
+      analysisRequestInProgress.current
+    ) {
+      return;
+    }
+
+    const requestedGameId = gameData.gameId;
+    analysisRequestInProgress.current = true;
+    setAnalysisStatus('analyzing');
+    setAnalysisError('');
+    try {
+      const analysis = await analyzeGame(requestedGameId);
+      if (String(activeGameId.current) === String(requestedGameId)) {
+        setGameAnalysis(analysis);
+        setAnalysisStatus('ready');
+      }
+    } catch (error) {
+      if (String(activeGameId.current) === String(requestedGameId)) {
+        setAnalysisError(error.message);
+        setAnalysisStatus('error');
+      }
+    } finally {
+      analysisRequestInProgress.current = false;
+    }
+  };
+
+  const handleRetryAnalysisLoad = async () => {
+    if (!gameData.gameId) return;
+    const requestedGameId = gameData.gameId;
+    setAnalysisStatus('loading');
+    setAnalysisError('');
+    try {
+      const analysis = await getGameAnalysis(requestedGameId);
+      if (String(activeGameId.current) === String(requestedGameId)) {
+        setGameAnalysis(analysis);
+        setAnalysisStatus(analysis ? 'ready' : 'not-analyzed');
+      }
+    } catch (error) {
+      if (String(activeGameId.current) === String(requestedGameId)) {
+        setAnalysisError(error.message);
+        setAnalysisStatus('error');
+      }
+    }
+  };
+
   // Keyboard shortcuts for desktop: Left (prev), Right (next), Home (start), End (last)
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Avoid intercepting keystrokes when typing in textarea or input, or if modal is open
       if (
         isImportModalOpen ||
+        isSavedGamesOpen ||
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
@@ -96,7 +204,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNavigate, isImportModalOpen]);
+  }, [handleNavigate, isImportModalOpen, isSavedGamesOpen]);
 
   const currentFen =
     gameData.positions[currentMoveIndex] || DEFAULT_STARTING_FEN;
@@ -105,7 +213,10 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Header onOpenImport={() => setIsImportModalOpen(true)} />
+      <Header
+        onOpenImport={() => setIsImportModalOpen(true)}
+        onOpenSavedGames={handleOpenSavedGames}
+      />
 
       <main className="dashboard-layout-3col">
         {/* Left column: Chessboard and controls (largest area) */}
@@ -115,13 +226,24 @@ export default function App() {
             currentMove={currentMove}
             currentMoveIndex={currentMoveIndex}
             totalMoves={gameData.totalMoves}
+            headers={gameData.headers}
             onNavigate={handleNavigate}
           />
         </section>
 
-        {/* Middle column: Suggestions (placeholder) */}
+        {/* Middle column: Stockfish-powered chess coaching */}
         <section className="dashboard-col suggestions-column" aria-label="Suggestions Section">
-          <SuggestionsPanel />
+          <SuggestionsPanel
+            analysis={gameAnalysis}
+            analysisStatus={analysisStatus}
+            analysisError={analysisError}
+            currentMoveIndex={currentMoveIndex}
+            moves={gameData.moves}
+            headers={gameData.headers}
+            onSelectMove={handleSelectMove}
+            onAnalyze={handleAnalyzeGame}
+            onRetry={handleRetryAnalysisLoad}
+          />
         </section>
 
         {/* Right column: Move History */}
@@ -158,6 +280,11 @@ export default function App() {
         onGameLoaded={handleGameLoaded}
         onGameSaved={handleGameSaved}
         onGameSaveFailed={handleGameSaveFailed}
+      />
+      <SavedGamesModal
+        isOpen={isSavedGamesOpen}
+        onClose={() => setIsSavedGamesOpen(false)}
+        onGameLoaded={handleSavedGameLoaded}
       />
     </div>
   );
