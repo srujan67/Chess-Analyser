@@ -84,6 +84,7 @@ export class StockfishService {
     this.waiters = [];
     this.lineBuffer = [];
     this.analysisLines = null;
+    this.engineVersion = null;
     this.exitPromise = null;
     this.resolveExit = null;
     this.exitResult = null;
@@ -284,8 +285,15 @@ export class StockfishService {
     }
   }
 
+  getEngineVersion() {
+    return this.engineVersion;
+  }
+
   handleLine(line) {
     if (!line) return;
+    if (line.startsWith('id name ')) {
+      this.engineVersion = line.slice('id name '.length).trim();
+    }
     if (this.analysisLines && line.startsWith('info ')) {
       this.analysisLines.push(line);
     }

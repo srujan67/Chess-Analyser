@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
-    "test:stockfish": "node scripts/run-stockfish-smoke.js"
+    "test:stockfish": "node scripts/run-stockfish-smoke.js",
+    "test:analysis-integration": "node scripts/run-game-analysis-integration.js"
   },
   "keywords": [
     "chess",

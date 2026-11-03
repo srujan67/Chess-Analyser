@@ -140,7 +140,7 @@ export async function getSavedGames(database = pool) {
  *   result: string,
  *   pgn: string,
  *   createdAt: Date|string,
- *   moves: Array<{plyNumber: number, san: string, fenAfter: string}>
+ *   moves: Array<{id: number|string, plyNumber: number, san: string, fenAfter: string}>
  * }|null>}
  */
 export async function getGameById(gameId, database = pool) {
@@ -164,6 +164,7 @@ export async function getGameById(gameId, database = pool) {
 
   const movesSql = `
     SELECT
+      id,
       ply_number AS plyNumber,
       san,
       fen_after AS fenAfter
