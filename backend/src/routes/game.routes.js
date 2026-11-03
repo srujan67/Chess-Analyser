@@ -1,8 +1,70 @@
 import { Router } from 'express';
 import { parseAndValidatePgn } from '../services/chessParser.js';
-import { saveGameToDatabase } from '../services/gameService.js';
+import {
+  getGameById,
+  getSavedGames,
+  saveGameToDatabase,
+} from '../services/gameService.js';
 
 const router = Router();
+const MAX_UNSIGNED_BIGINT = 18446744073709551615n;
+
+export function isValidGameId(id) {
+  if (typeof id !== 'string' || !/^[1-9]\d{0,19}$/.test(id)) {
+    return false;
+  }
+
+  return BigInt(id) <= MAX_UNSIGNED_BIGINT;
+}
+
+/**
+ * GET /api/games
+ * Returns a bounded list of saved game summaries.
+ */
+router.get('/', async (req, res) => {
+  try {
+    const games = await getSavedGames();
+    return res.status(200).json({ status: 'ok', games });
+  } catch (error) {
+    console.error('[Game Route Error] Failed to retrieve games:', error.message);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to retrieve games from the database.',
+    });
+  }
+});
+
+/**
+ * GET /api/games/:id
+ * Returns one saved game and its moves.
+ */
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!isValidGameId(id)) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'Game ID must be a positive integer.',
+    });
+  }
+
+  try {
+    const game = await getGameById(id);
+    if (!game) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Game not found.',
+      });
+    }
+
+    return res.status(200).json({ status: 'ok', game });
+  } catch (error) {
+    console.error('[Game Route Error] Failed to retrieve game:', error.message);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to retrieve the game from the database.',
+    });
+  }
+});
 
 /**
  * POST /api/games
@@ -46,4 +108,3 @@ router.post('/', async (req, res) => {
 });
 
 export default router;
-

@@ -1,4 +1,5 @@
 import express from 'express';
+import { createAnalysisRouter } from './routes/analysis.routes.js';
 import healthRouter from './routes/health.routes.js';
 import gameRouter from './routes/game.routes.js';
 
@@ -10,6 +11,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/health', healthRouter);
 app.use('/api/games', gameRouter);
+app.use('/api/analysis', createAnalysisRouter());
 
 // 404 Handler for unknown routes
 app.use((req, res) => {

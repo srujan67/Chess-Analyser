@@ -1,5 +1,7 @@
 import pool from '../config/db.js';
 
+const GAME_LIST_LIMIT = 100;
+
 /**
  * Saves a validated chess game and its individual moves into MySQL
  * using an atomic database transaction.
@@ -89,3 +91,90 @@ export async function saveGameToDatabase(gameData) {
   }
 }
 
+/**
+ * Retrieves a bounded list of saved games without their PGN contents.
+ *
+ * @param {import('mysql2/promise').Pool} database
+ * @returns {Promise<Array<{
+ *   id: number|string,
+ *   whitePlayer: string|null,
+ *   blackPlayer: string|null,
+ *   result: string,
+ *   createdAt: Date|string,
+ *   movesCount: number
+ * }>>}
+ */
+export async function getSavedGames(database = pool) {
+  const sql = `
+    SELECT
+      g.id,
+      g.white_player AS whitePlayer,
+      g.black_player AS blackPlayer,
+      g.result,
+      g.created_at AS createdAt,
+      COUNT(m.id) AS movesCount
+    FROM games AS g
+    LEFT JOIN moves AS m ON m.game_id = g.id
+    GROUP BY
+      g.id,
+      g.white_player,
+      g.black_player,
+      g.result,
+      g.created_at
+    ORDER BY g.created_at DESC, g.id DESC
+    LIMIT ?
+  `;
+  const [rows] = await database.query(sql, [GAME_LIST_LIMIT]);
+  return rows;
+}
+
+/**
+ * Retrieves one game and its moves in ply order.
+ *
+ * @param {string} gameId
+ * @param {import('mysql2/promise').Pool} database
+ * @returns {Promise<{
+ *   id: number|string,
+ *   whitePlayer: string|null,
+ *   blackPlayer: string|null,
+ *   result: string,
+ *   pgn: string,
+ *   createdAt: Date|string,
+ *   moves: Array<{plyNumber: number, san: string, fenAfter: string}>
+ * }|null>}
+ */
+export async function getGameById(gameId, database = pool) {
+  const gameSql = `
+    SELECT
+      id,
+      white_player AS whitePlayer,
+      black_player AS blackPlayer,
+      result,
+      pgn,
+      created_at AS createdAt
+    FROM games
+    WHERE id = ?
+    LIMIT 1
+  `;
+  const [gameRows] = await database.query(gameSql, [gameId]);
+
+  if (gameRows.length === 0) {
+    return null;
+  }
+
+  const movesSql = `
+    SELECT
+      ply_number AS plyNumber,
+      san,
+      fen_after AS fenAfter
+    FROM moves
+    WHERE game_id = ?
+    ORDER BY ply_number ASC
+  `;
+  const [moves] = await database.query(movesSql, [gameId]);
+
+  return {
+    ...gameRows[0],
+    moves,
+  };
+}
